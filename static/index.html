@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Учёт приборов</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        
+        /* Таблица */
+        .devices-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .devices-table th, .devices-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .devices-table th {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .devices-table tr:hover {
+            background-color: #f1f1f1;
+            cursor: pointer;
+        }
+        
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 20px;
+            width: 90%;
+            max-width: 700px;
+            border-radius: 10px;
+            max-height: 85%;
+            overflow-y: auto;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .close { cursor: pointer; font-size: 24px; color: #999; }
+        .close:hover { color: #333; }
+        
+        /* Форма */
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .form-group textarea { min-height: 80px; }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        .btn-save { background-color: #28a745; color: white; }
+        .btn-delete { background-color: #dc3545; color: white; }
+        .btn-cancel { background-color: #6c757d; color: white; }
+        
+        /* Загрузка */
+        .loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 18px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📋 Учёт приборов</h1>
+        
+        <table class="devices-table" id="devicesTable">
+            <thead>
+                <tr>
+                    <th>Серийный номер</th>
+                    <th>УоП</th>
+                    <th>Дата СГП</th>
+                    <th>Статус</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <tr><td colspan="4" class="loading">Загрузка...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Модальное окно карточки прибора -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Карточка прибора</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <form id="deviceForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Серийный номер</label>
+                        <input type="text" id="serial_number" readonly style="background:#f0f0f0">
+                    </div>
+                    <div class="form-group">
+                        <label>Ордер</label>
+                        <input type="text" id="order_number">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>УоП</label>
+                        <input type="text" id="uop">
+                    </div>
+                    <div class="form-group">
+                        <label>Дата СГП</label>
+                        <input type="date" id="sgp_date">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Статус</label>
+                    <select id="status">
+                        <option>На складе</option>
+                        <option>На производстве</option>
+                        <option>Отгружен</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Покупатель</label>
+                    <input type="text" id="customer">
+                </div>
+                
+                <div class="form-group">
+                    <label>Грузополучатель</label>
+                    <input type="text" id="receiver">
+                </div>
+                
+                <div class="form-group">
+                    <label>Аксессуары</label>
+                    <textarea id="accessories"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Доп. комплектация</label>
+                    <textarea id="extra_equipment"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Доп. требования</label>
+                    <textarea id="extra_requirements"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Комментарии</label>
+                    <textarea id="comments"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label>Заказы, относящиеся к прибору</label>
+                    <textarea id="orders"></textarea>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <button type="button" class="btn-save" onclick="saveDevice()">Сохранить</button>
+                    <button type="button" class="btn-delete" onclick="deleteDevice()">Удалить прибор</button>
+                    <button type="button" class="btn-cancel" onclick="closeModal()">Отмена</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = "http://192.168.102.107:8000";
+        let currentSerialNumber = null;
+
+        // Загрузка списка приборов
+        async function loadDevices() {
+            try {
+                const response = await fetch(`${API_URL}/devices`);
+                const devices = await response.json();
+                
+                const tbody = document.getElementById('tableBody');
+                if (devices.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">Нет данных</td></tr>';
+                    return;
+                }
+                
+                function formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    return `${day}.${month}.${year}`;
+                }
+
+                tbody.innerHTML = devices.map(device => `
+                    <tr onclick="openDevice('${device.serial_number}')">
+                        <td>${escapeHtml(device.serial_number)}</td>
+                        <td>${escapeHtml(device.uop || '')}</td>
+                        <td>${formatDate(device.sgp_date) || ''}</td>
+                        <td>${escapeHtml(device.status || '')}</td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Ошибка загрузки:', error);
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="4">Ошибка загрузки</td></tr>';
+            }
+        }
+
+        // Открытие карточки прибора
+        async function openDevice(serialNumber) {
+            currentSerialNumber = serialNumber;
+            try {
+                const response = await fetch(`${API_URL}/device/${serialNumber}`);
+                const device = await response.json();
+                
+                document.getElementById('serial_number').value = device.serial_number || '';
+                document.getElementById('order_number').value = device.order_number || '';
+                document.getElementById('uop').value = device.uop || '';
+                document.getElementById('sgp_date').value = device.sgp_date || '';
+                document.getElementById('status').value = device.status || 'На складе';
+                document.getElementById('customer').value = device.customer || '';
+                document.getElementById('receiver').value = device.receiver || '';
+                document.getElementById('accessories').value = device.accessories || '';
+                document.getElementById('extra_equipment').value = device.extra_equipment || '';
+                document.getElementById('extra_requirements').value = device.extra_requirements || '';
+                document.getElementById('comments').value = device.comments || '';
+                document.getElementById('orders').value = device.orders || '';
+                
+                document.getElementById('modal').style.display = 'block';
+            } catch (error) {
+                console.error('Ошибка загрузки прибора:', error);
+                alert('Не удалось загрузить данные прибора');
+            }
+        }
+
+        // Сохранение прибора
+        async function saveDevice() {
+            const deviceData = {
+                id: 0,
+                serial_number: document.getElementById('serial_number').value,
+                order_number: document.getElementById('order_number').value,
+                uop: document.getElementById('uop').value,
+                sgp_date: document.getElementById('sgp_date').value || null,
+                status: document.getElementById('status').value,
+                customer: document.getElementById('customer').value,
+                receiver: document.getElementById('receiver').value,
+                accessories: document.getElementById('accessories').value,
+                extra_equipment: document.getElementById('extra_equipment').value,
+                extra_requirements: document.getElementById('extra_requirements').value,
+                comments: document.getElementById('comments').value,
+                orders: document.getElementById('orders').value,
+                last_update: null
+            };
+            
+            try {
+                const response = await fetch(`${API_URL}/device/${currentSerialNumber}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(deviceData)
+                });
+                
+                if (response.ok) {
+                    alert('Данные сохранены');
+                    closeModal();
+                    loadDevices();
+                } else {
+                    alert('Ошибка при сохранении');
+                }
+            } catch (error) {
+                console.error('Ошибка сохранения:', error);
+                alert('Ошибка при сохранении');
+            }
+        }
+
+        // Удаление прибора
+        async function deleteDevice() {
+            if (!confirm(`Удалить прибор ${currentSerialNumber}? Данные будут потеряны!`)) return;
+            
+            try {
+                const response = await fetch(`${API_URL}/device/${currentSerialNumber}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    alert('Прибор удалён');
+                    closeModal();
+                    loadDevices();
+                } else {
+                    alert('Ошибка при удалении');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления:', error);
+                alert('Ошибка при удалении');
+            }
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+            currentSerialNumber = null;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Загрузка при старте
+        loadDevices();
+    </script>
+</body>
+</html>
