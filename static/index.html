@@ -113,8 +113,12 @@
 </head>
 <body>
     <div class="container">
-        <h1>📋 Учёт приборов</h1>
-        
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+            <h1>📋 Учёт приборов</h1>
+            <button onclick="addNewDevice()" style="background-color: #59cf75; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer;">
+                ➕ Добавить прибор
+            </button>
+        </div>
         <table class="devices-table" id="devicesTable">
             <thead>
                 <tr>
@@ -373,6 +377,38 @@
                 if (m === '>') return '&gt;';
                 return m;
             });
+        }
+
+        // Создание прибора
+        async function addNewDevice() {
+
+            const serialNumber = prompt("Введите серийный номер прибора:");
+
+            console.log("Тип serialNumber:", typeof serialNumber);
+            console.log("Значение serialNumber:", serialNumber);
+
+            if (!serialNumber || !serialNumber.trim()) {
+                console.log("Проблема с serialNumber!");
+                alert('Ошибка: серийный номер не распознан');
+                return
+            }
+
+            try {
+                const responce = await fetch(`${API_URL}/device?serial_number=${encodeURIComponent(serialNumber.trim())}`,{
+                    method: "POST"
+                });
+
+                if (responce.ok) {
+                    alert("Прибор создан");
+                    loadDevices();
+                } else {
+                    const error = await responce.json();
+                    alert("Ошибка: " + (error.detail || "Не удалось создать прибор"));
+                }
+            } catch (error) {
+                console.error("Ошибка срздания:", error);
+                alert("Ошибка при создании прибора");
+            }
         }
 
         // Загрузка при старте
