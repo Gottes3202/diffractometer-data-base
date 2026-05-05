@@ -9,6 +9,7 @@ from datetime import date
 import psycopg2 as ps2
 from psycopg2.extras import RealDictCursor
 import uvicorn
+from dotenv import load_dotenv
 
 app = FastAPI(title="Дифрактометры")
 
@@ -19,13 +20,9 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-db_config = {
-    "host": "localhost",
-    "port": 6080,
-    "user": "postgres",
-    "password": "superpass",
-    "database": "devices_db"
-}
+load_dotenv()
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
 class Devices(BaseModel):
     serial_number: str
@@ -48,7 +45,7 @@ class DeviceFull(Devices, DeviceInfo):
     last_update: Optional[date] = None
 
 def get_db_connection():
-    return ps2.connect(**db_config, cursor_factory=RealDictCursor)
+    return ps2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
 
 @app.get("/devices", response_model=List[DeviceFull])
 def get_all_devices():
