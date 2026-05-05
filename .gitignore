@@ -1,5 +1,4 @@
 __pycache__/main.cpython-313.pyc
 dataBase.py
-DATABASE_URL.env
 .env
 backup.dump
